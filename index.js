@@ -1,4 +1,4 @@
-const { MongoClient, ServerApiVersion } = require('mongodb');
+const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const dotenv = require('dotenv')
 const cors = require('cors')
 dotenv.config()
@@ -35,6 +35,13 @@ async function run() {
             const ideaData = req.body
             const result = await ideaCollection.insertOne(ideaData)
             res.json(result)
+        })
+
+       app.get(('/idea/:id'), async ( req, res) =>{
+           const {id} = req.params  
+           const result = await ideaCollection.findOne({_id: new ObjectId(id)})
+
+           res.json(result)
         })
 
 
