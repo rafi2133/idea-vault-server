@@ -53,6 +53,46 @@ async function run() {
             res.json(result)
         })
 
+        app.put('/idea/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { userId, ...updateData } = req.body;
+        
+        // 1. Check if the idea exists
+        const existingIdea = await ideaCollection.findOne({ _id: new ObjectId(id) });
+        if (!existingIdea) {
+            return res.status(404).json({ error: 'Idea not found' });
+        }
+        
+        // 2. Check if the user owns this idea
+        if (existingIdea.userId !== userId) {
+            return res.status(403).json({ error: 'Unauthorized: You can only edit your own ideas' });
+        }
+        
+        // 3. Remove _id from update data and add updated timestamp
+        delete updateData._id;
+        updateData.updatedAt = new Date().toISOString();
+        
+        // 4. Update the idea
+        const result = await ideaCollection.updateOne(
+            { _id: new ObjectId(id) },
+            { $set: updateData }
+        );
+        
+        // 5. Get the updated idea
+        const updatedIdea = await ideaCollection.findOne({ _id: new ObjectId(id) });
+        
+        res.json({ 
+            success: true, 
+            message: 'Idea updated successfully',
+            data: updatedIdea 
+        });
+    } catch (error) {
+        console.error('Error updating idea:', error);
+        res.status(500).json({ error: 'Failed to update idea' });
+    }
+});
+
         
 
 
