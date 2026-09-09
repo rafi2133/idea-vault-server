@@ -3,6 +3,7 @@ const dotenv = require('dotenv')
 const cors = require('cors')
 dotenv.config()
 const express = require('express');
+const { createRemoteJWKSet, jwtVerify } = require('jose-cjs');
 const app = express()
 const port = process.env.PORT
 
@@ -18,6 +19,31 @@ const client = new MongoClient(uri, {
     }
 });
 
+
+    const JWKS =  createRemoteJWKSet(
+        new URL("http://localhost:3000/api/auth/jwks")
+    )
+
+    const verifyToken = async (req, res, next)=>{
+           const authHeader = req?.headers.authorization  
+           if(!authHeader){
+            return res.status(401).json({message:"Unauthorized"})
+           }
+           const token = authHeader.split(" ")[1]
+            if(!token){
+             return res.status(401).json({message:"Unauthorized"})  
+            } 
+            try{
+                const {payload} = await jwtVerify(token, JWKS)
+                console.log(payload)
+                next()
+            } catch (error) {
+                console.error('Token verification error:', error);
+                return res.status(403).json({message:"Forbidden"})
+            }    
+        }
+
+
 async function run() {
     try {
         await client.connect();
@@ -32,7 +58,7 @@ async function run() {
             res.json(result)
         })
 
-        app.post('/idea', async (req, res) => {
+        app.post('/idea',verifyToken ,async (req, res) => {
             const ideaData = req.body
             const result = await ideaCollection.insertOne(ideaData)
             res.json(result)
@@ -40,7 +66,7 @@ async function run() {
 
 
 
-        app.get(('/idea/:id'), async (req, res) => {
+        app.get(('/idea/:id'),verifyToken ,async (req, res) => {
             const { id } = req.params
             const result = await ideaCollection.findOne({ _id: new ObjectId(id) })
 
@@ -53,7 +79,7 @@ async function run() {
             res.json(result)
         })
 
-        app.put('/idea/:id', async (req, res) => {
+        app.put('/idea/:id', verifyToken,async (req, res) => {
             try {
                 const { id } = req.params;
                 const { userId, ...updateData } = req.body;
@@ -95,7 +121,7 @@ async function run() {
 
 
 
-        app.delete('/idea/:id', async (req, res) => {
+        app.delete('/idea/:id', verifyToken,async (req, res) => {
             try {
                 const { id } = req.params;
                 const { userId } = req.body;
