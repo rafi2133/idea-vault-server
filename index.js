@@ -21,7 +21,7 @@ const client = new MongoClient(uri, {
 
 
     const JWKS =  createRemoteJWKSet(
-        new URL("http://localhost:3000/api/auth/jwks")
+        new URL(`${process.env.CLIENT_URL}/api/auth/jwks`)
     )
 
     const verifyToken = async (req, res, next)=>{
@@ -46,7 +46,7 @@ const client = new MongoClient(uri, {
 
 async function run() {
     try {
-        await client.connect();
+        // await client.connect();
 
         const db = client.db('ideavault')
         const ideaCollection = db.collection("ideas")
@@ -84,7 +84,7 @@ async function run() {
                 const { id } = req.params;
                 const { userId, ...updateData } = req.body;
 
-                // 1. Check if the idea exists
+                // 1. Check if the idea is really exists
                 const existingIdea = await ideaCollection.findOne({ _id: new ObjectId(id) });
                 if (!existingIdea) {
                     return res.status(404).json({ error: 'Idea not found' });
@@ -283,7 +283,7 @@ async function run() {
 
 
 
-        await client.db("admin").command({ ping: 1 });
+        // await client.db("admin").command({ ping: 1 });
         console.log("Pinged your deployment. You successfully connected to MongoDB!");
     } finally {
         // await client.close();
